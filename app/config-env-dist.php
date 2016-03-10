@@ -14,5 +14,5 @@ $configEnv = [
 		'user'	=> '',
 		'pass'	=> ''
 	),
-	'baseURl' => '', //leave blank if api deploys to rot directory
+	'baseUrl' => '', //leave blank if api deploys to rot directory
 ];

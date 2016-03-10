@@ -18,9 +18,15 @@ $app->group('/lists', function() use ($app, $db) {
         }
 
         //get app_key
-        $sth = $db->prepare('SELECT id FROM apps WHERE app_key = :app_key');
+        $sth = $db->prepare('SELECT id, userID FROM apps WHERE app_key = :app_key');
         $sth->execute(array('app_key' => $app->request()->get('app_key')));
-        $app = $sth->fetchAll(PDO::FETCH_ASSOC);
+        $application = $sth->fetchAll(PDO::FETCH_ASSOC);
+
+        //get api_key
+        $sth = $db->prepare('SELECT api_key FROM login WHERE id = :id');
+        $sth->execute(array('id' => $application[0]['userID']));
+        $api_key = $sth->fetchAll(PDO::FETCH_ASSOC)[0]['api_key'];
+
 
         //check if this list already exists
         $sth = $db->prepare('SELECT * FROM lists WHERE name = :name');
@@ -30,18 +36,19 @@ $app->group('/lists', function() use ($app, $db) {
         //don't add new list, just return existed
         if(count($res) > 0)
         {
-            echo json_encode(array('status' => 'ok', 'result' => $res[0]['id']));
+            echo json_encode(array('status' => 'ok', 'result' => short($res[0]['id'], $api_key)));
             $app->stop();
         }
 
-        $sth = $db->prepare('INSERT INTO lists SET name = :name, app = :app');
+        $sth = $db->prepare('INSERT INTO lists SET userID = :userID, name = :name, app = :app');
 
         $sth->execute(array(
-                        'name' => $get['name'],
-                        'app'  => $app[0]['id'],
+                            'userID' => $application[0]['userID'],
+                            'name'   => $get['name'],
+                            'app'    => $application[0]['id'],
                         ));
 
-        echo json_encode(array('status' => 'ok', 'result' => $db->lastInsertId()));
+        echo json_encode(array('status' => 'ok', 'result' => short($db->lastInsertId(), $api_key)));
 
     });
 
@@ -77,3 +84,21 @@ $app->group('/lists', function() use ($app, $db) {
     });
 
 });
+
+/**
+ * encrypt id
+ * @param  string $in
+ * @param  string $api_key
+ * @return string     encrypted id
+ */
+function short($in, $api_key)
+{
+    $encryptionMethod = "AES-256-CBC";
+
+    $encrypted = openssl_encrypt($in, $encryptionMethod, $api_key, 0, '3j9hwG7uj8uvpRAT');
+    $encrypted = str_replace('/', '892', $encrypted);
+    $encrypted = str_replace('+', '763', $encrypted);
+    $encrypted = str_replace('=', '', $encrypted);
+
+    return $encrypted;
+}
