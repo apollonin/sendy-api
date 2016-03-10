@@ -14,6 +14,7 @@ $requestPath = parse_url($_SERVER['REQUEST_URI'])['path'];
 $env = $app->environment;
 $env['PATH_INFO'] = substr($requestPath, 0, strlen($env['SCRIPT_NAME'])) == $env['SCRIPT_NAME']
 	? substr_replace($requestPath, '', 0, strlen($env['SCRIPT_NAME'])) : $requestPath ;
+$env['PATH_INFO'] = str_replace($configEnv['baseUrl'], '', $env['PATH_INFO']);
 # fix end
 
 $app->notFound(function () use ($app) {
